@@ -15,6 +15,8 @@ import com.itheima.reggie.service.SetmealService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -35,6 +37,7 @@ public class SetmealController {
     private CategoryService categoryService;
 
     @PostMapping
+    @CacheEvict(value = "setmealCache",allEntries = true)
     public R<String> save(@RequestBody SetmealDto setmealDto){
         log.info(setmealDto.toString());
         setmealService.saveWithDish(setmealDto);
@@ -68,11 +71,10 @@ public class SetmealController {
     }
 
     @DeleteMapping
+    @CacheEvict(value = "setmealCache",allEntries = true)
     public R<String> delete(@RequestBody List<Long> ids){
-
         setmealService.removeWithDish(ids);
         return R.success("删除成功");
-
     }
 
     @PostMapping("/status/{value}")
@@ -106,10 +108,11 @@ public class SetmealController {
     }
 
     @GetMapping("/list")
+    @Cacheable(value = "setmealCache",key = "#categoryId+'_'+#status")
     public R<List<Setmeal>> list(Long categoryId,Integer status){
         LambdaQueryWrapper<Setmeal> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Setmeal::getCategoryId,categoryId);
-        wrapper.eq(Setmeal::getStatus,status);
+        wrapper.eq(categoryId!=null,Setmeal::getCategoryId,categoryId);
+        wrapper.eq(status!=null,Setmeal::getStatus,status);
         wrapper.orderByDesc(Setmeal::getUpdateTime);
         List<Setmeal> setmealList = setmealService.list(wrapper);
         return R.success(setmealList);

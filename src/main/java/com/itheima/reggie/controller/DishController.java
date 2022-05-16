@@ -15,11 +15,13 @@ import com.itheima.reggie.service.DishService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.websocket.server.PathParam;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -36,9 +38,17 @@ public class DishController {
     @Autowired
     private CategoryService categoryService;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     @PostMapping
     public R<String> save(@RequestBody DishDto dishDto){
         dishService.saveWithFlavor(dishDto);
+
+        String key = "key_"+dishDto.getCategoryId()+"_1";
+
+        redisTemplate.delete(key);
+
         return R.success("保存成功");
     }
 
@@ -102,17 +112,32 @@ public class DishController {
     @PutMapping
     public R<String> update(@RequestBody DishDto dishDto){
         dishService.updateWithFlavor(dishDto);
+
+        String key = "key_"+dishDto.getCategoryId()+"_1";
+
+        redisTemplate.delete(key);
+
         return R.success("操作成功");
     }
 
     @GetMapping("/list")
     public R<List<DishDto>> listByCategoryId(Long categoryId,Integer status){
+
+        List<DishDto> dishDtoList = null;
+
+        String key = "dish_"+categoryId+"_"+status;
+        dishDtoList = (List<DishDto>) redisTemplate.opsForValue().get(key);
+        if(dishDtoList!=null){
+            return R.success(dishDtoList);
+        }
+
+
         LambdaQueryWrapper<Dish> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Dish::getCategoryId,categoryId);
         wrapper.eq(Dish::getStatus,status);
         wrapper.orderByDesc(Dish::getUpdateTime);
         List<Dish> list = dishService.list(wrapper);
-        List<DishDto> dishDtoList = new ArrayList<>();
+        dishDtoList = new ArrayList<>();
 
         LambdaQueryWrapper<DishFlavor> wrapper1 = new LambdaQueryWrapper<>();
         //把集合中每个菜的口味查找出来
@@ -125,6 +150,9 @@ public class DishController {
             dishDto.setFlavors(dishFlavors);
             dishDtoList.add(dishDto);
         }
+
+        redisTemplate.opsForValue().set(key,dishDtoList,60, TimeUnit.MINUTES);
+
         return R.success(dishDtoList);
     }
 
