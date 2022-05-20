@@ -1,6 +1,5 @@
 package com.itheima.reggie.controller;
 
-
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.itheima.reggie.common.R;
 import com.itheima.reggie.entity.User;
@@ -63,14 +62,12 @@ public class UserController {
         String code = map.get("code").toString();
 
         //从session中获取保存的验证码
-//        String codeAttribute = (String)session.getAttribute("user");
+        //String codeAttribute = (String)session.getAttribute("user");
 
         //从redis中获取缓存的验证码
         String codeAttribute = (String) redisTemplate.opsForValue().get(phone);
 
-
         if(codeAttribute!=null&&codeAttribute.equals(code)){
-
             LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(User::getPhone,phone);
             User user = userService.getOne(wrapper);
@@ -97,7 +94,5 @@ public class UserController {
         request.getSession().removeAttribute("user");
         return R.success("退出成功");
     }
-
-
 
 }
