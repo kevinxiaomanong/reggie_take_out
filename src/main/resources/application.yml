@@ -56,4 +56,4 @@ spring:
       time-to-live: 1800000
 
 reggie:
-  path: D:\reggie\imgs\
+  path: /usr/local/img/
