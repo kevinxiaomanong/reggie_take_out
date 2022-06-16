@@ -54,6 +54,3 @@ spring:
   cache:
     redis:
       time-to-live: 1800000
-
-reggie:
-  path: /usr/local/img/
